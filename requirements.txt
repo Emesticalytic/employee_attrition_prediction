@@ -1,0 +1,31 @@
+# Employee Attrition Prediction - Python Dependencies
+# Created: February 2026
+# Author: Emem A. - Senior Data Scientist
+
+# Core Data Science Libraries
+pandas==2.3.3
+numpy==2.3.4
+
+# Machine Learning
+scikit-learn==1.7.2
+xgboost==3.1.2
+
+# Visualization
+matplotlib==3.10.7
+seaborn==0.13.2
+
+# Model Interpretability
+shap==0.50.0
+
+# Console Formatting
+colorama==0.4.6
+rich==13.9.4
+
+# Jupyter Support
+ipykernel>=6.0.0
+jupyter>=1.0.0
+
+# Optional: For deployment
+# fastapi>=0.104.0
+# uvicorn>=0.24.0
+# pydantic>=2.0.0

@@ -60,11 +60,16 @@ your_output_directory/
 .env.local
 
 # Model files (if large)
-*.pkl
-*.joblib
+# Note: models/ directory is tracked for deployment
+# *.pkl
+# *.joblib
 *.h5
 *.pt
 
 # Temporary files
 tmp/
 temp/
+
+# Streamlit
+.streamlit/secrets.toml
+.streamlit/cache/

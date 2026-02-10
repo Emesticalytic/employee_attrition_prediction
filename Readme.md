@@ -128,8 +128,26 @@ jupyter notebook Employees_workbook.ipynb
 2. **Run all cells** (Kernel → Restart & Run All)
 3. **Review outputs** in the notebook and `outputs/images/` folder
 4. **Check predictions** in `attritionprediction.csv`
+5. **Model saved** to `models/` directory for Streamlit app
 
 **Total runtime:** ~5-10 minutes on standard hardware
+
+### Run the Streamlit Web App
+
+```bash
+# After training the model in Jupyter
+streamlit run app.py
+```
+
+The app will open at `http://localhost:8501` with:
+- 📊 Interactive dashboard
+- 🔮 Single employee predictions
+- 📈 Batch analysis
+- 🎯 High-risk employee identification
+- 💰 ROI calculator
+- 📋 Data explorer
+
+See [STREAMLIT_README.md](STREAMLIT_README.md) for detailed instructions.
 
 ---
 

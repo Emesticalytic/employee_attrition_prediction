@@ -3,7 +3,7 @@
 Author: Emem A. - Senior Data Scientist
 Date: February 2026
 
-A production-ready web application for predicting employee attrition with 96.4% accuracy.
+A production-ready web application for predicting employee attrition with 93% accuracy (97.16% ROC-AUC).
 """
 
 import streamlit as st
@@ -17,6 +17,24 @@ from datetime import datetime
 import warnings
 warnings.filterwarnings('ignore')
 
+# Set professional matplotlib style
+plt.style.use('seaborn-v0_8-darkgrid')
+sns.set_palette(['#3498DB', '#2C3E50', '#5D6D7E', '#7F8C8D', '#95A5A6'])
+plt.rcParams['figure.facecolor'] = 'white'
+plt.rcParams['axes.facecolor'] = '#F8F9FA'
+plt.rcParams['axes.edgecolor'] = '#2C3E50'
+plt.rcParams['axes.labelcolor'] = '#2C3E50'
+plt.rcParams['text.color'] = '#2C3E50'
+plt.rcParams['xtick.color'] = '#2C3E50'
+plt.rcParams['ytick.color'] = '#2C3E50'
+plt.rcParams['grid.color'] = '#BDC3C7'
+plt.rcParams['grid.alpha'] = 0.3
+plt.rcParams['font.size'] = 10
+plt.rcParams['axes.titlesize'] = 14
+plt.rcParams['axes.titleweight'] = 'bold'
+plt.rcParams['axes.labelsize'] = 11
+plt.rcParams['axes.labelweight'] = 'bold'
+
 # Page Configuration
 st.set_page_config(
     page_title="Employee Attrition Predictor",
@@ -25,49 +43,146 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for better styling
+# Custom CSS for professional styling
 st.markdown("""
 <style>
+    /* Professional Color Palette */
+    :root {
+        --primary-blue: #2C3E50;
+        --secondary-blue: #34495E;
+        --accent-blue: #3498DB;
+        --success-green: #27AE60;
+        --warning-orange: #E67E22;
+        --danger-red: #C0392B;
+        --light-gray: #ECF0F1;
+        --medium-gray: #95A5A6;
+        --dark-gray: #2C3E50;
+    }
+    
     .main-header {
         font-size: 3rem;
-        font-weight: bold;
-        color: #1f77b4;
+        font-weight: 700;
+        color: #2C3E50;
         text-align: center;
-        padding: 1rem 0;
+        padding: 1.5rem 0;
+        margin-bottom: 1rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
     }
+    
     .metric-card {
-        background-color: #f0f2f6;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
         padding: 1.5rem;
-        border-radius: 0.5rem;
-        border-left: 5px solid #1f77b4;
+        border-radius: 0.75rem;
+        border-left: 5px solid #3498DB;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
+    
     .success-box {
-        background-color: #d4edda;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        border-left: 5px solid #28a745;
+        background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+        padding: 1.25rem;
+        border-radius: 0.75rem;
+        border-left: 5px solid #27AE60;
         margin: 1rem 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
     }
+    
     .warning-box {
-        background-color: #fff3cd;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        border-left: 5px solid #ffc107;
+        background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+        padding: 1.25rem;
+        border-radius: 0.75rem;
+        border-left: 5px solid #E67E22;
         margin: 1rem 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
     }
+    
     .danger-box {
-        background-color: #f8d7da;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        border-left: 5px solid #dc3545;
+        background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+        padding: 1.25rem;
+        border-radius: 0.75rem;
+        border-left: 5px solid #C0392B;
         margin: 1rem 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
     }
+    
+    /* Tab Styling */
     .stTabs [data-baseweb="tab-list"] {
         gap: 2rem;
+        background-color: #f8f9fa;
+        padding: 0.5rem;
+        border-radius: 0.5rem;
     }
+    
     .stTabs [data-baseweb="tab"] {
         padding: 1rem 2rem;
         font-size: 1.1rem;
+        font-weight: 600;
+        color: #2C3E50;
+        background-color: transparent;
+        border-radius: 0.5rem;
+        transition: all 0.3s ease;
+    }
+    
+    .stTabs [data-baseweb="tab"]:hover {
+        background-color: #e9ecef;
+        color: #3498DB;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background-color: #3498DB !important;
+        color: white !important;
+    }
+    
+    /* Metric Styling */
+    [data-testid="stMetricValue"] {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #2C3E50;
+    }
+    
+    [data-testid="stMetricLabel"] {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #7f8c8d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    /* Button Styling */
+    .stButton > button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        font-weight: 600;
+        border: none;
+        border-radius: 0.5rem;
+        padding: 0.75rem 2rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+    
+    /* Sidebar Styling */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #2C3E50 0%, #34495E 100%);
+    }
+    
+    [data-testid="stSidebar"] .stRadio > label {
+        color: white;
+        font-weight: 600;
+    }
+    
+    /* Professional Chart Colors */
+    .plot-container {
+        background-color: white;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -78,6 +193,11 @@ def load_data():
     """Load the employee dataset"""
     try:
         df = pd.read_csv('employee.csv')
+        # Standardize column names to handle case variations
+        df.columns = df.columns.str.strip()
+        # Create 'Attrition' column if it doesn't exist but 'attrition' does
+        if 'attrition' in df.columns and 'Attrition' not in df.columns:
+            df['Attrition'] = df['attrition']
         return df
     except FileNotFoundError:
         st.error("❌ employee.csv not found. Please ensure the data file is in the project directory.")
@@ -104,6 +224,15 @@ def load_predictions():
     try:
         high_risk = pd.read_csv('high_risk.csv')
         predictions = pd.read_csv('attritionprediction.csv')
+        
+        # Standardize column names
+        if 'risk_category' in high_risk.columns:
+            high_risk['RiskLevel'] = high_risk['risk_category']
+        if 'risk_category' in predictions.columns:
+            predictions['RiskLevel'] = predictions['risk_category']
+        if 'attrition_risk_score' in predictions.columns:
+            predictions['Attrition_Probability'] = predictions['attrition_risk_score']
+            
         return high_risk, predictions
     except FileNotFoundError:
         return None, None
@@ -122,11 +251,12 @@ def create_feature_for_prediction(input_data, feature_columns):
 
 def plot_attrition_distribution(df):
     """Plot attrition distribution"""
-    fig, ax = plt.subplots(1, 2, figsize=(14, 5))
+    fig, ax = plt.subplots(1, 2, figsize=(14, 5), facecolor='white')
     
-    # Count plot
-    attrition_counts = df['Attrition'].value_counts()
-    colors = ['#2ecc71', '#e74c3c']
+    # Count plot - Professional colors
+    attrition_col = 'Attrition' if 'Attrition' in df.columns else 'attrition'
+    attrition_counts = df[attrition_col].value_counts()
+    colors = ['#3498DB', '#5D6D7E']  # Professional blue and gray
     ax[0].bar(attrition_counts.index, attrition_counts.values, color=colors, edgecolor='black', linewidth=1.5)
     ax[0].set_title('Attrition Distribution', fontsize=14, fontweight='bold')
     ax[0].set_xlabel('Attrition Status')
@@ -153,8 +283,9 @@ def plot_risk_distribution(high_risk_df):
     fig, ax = plt.subplots(1, 2, figsize=(14, 5))
     
     # Risk level distribution
-    risk_counts = high_risk_df['RiskLevel'].value_counts()
-    colors = ['#e74c3c', '#f39c12', '#f1c40f']
+    risk_col = 'RiskLevel' if 'RiskLevel' in high_risk_df.columns else 'risk_category'
+    risk_counts = high_risk_df[risk_col].value_counts()
+    colors = ['#34495E', '#5D6D7E', '#95A5A6']  # Professional dark to light gray
     
     ax[0].bar(risk_counts.index, risk_counts.values, color=colors, edgecolor='black', linewidth=1.5)
     ax[0].set_title('Risk Level Distribution', fontsize=14, fontweight='bold')
@@ -166,8 +297,10 @@ def plot_risk_distribution(high_risk_df):
         ax[0].text(i, v + 2, str(v), ha='center', fontweight='bold')
     
     # Department-wise risk
-    if 'Department' in high_risk_df.columns:
-        dept_risk = high_risk_df.groupby(['Department', 'RiskLevel']).size().unstack(fill_value=0)
+    dept_col = 'Department' if 'Department' in high_risk_df.columns else 'department'
+    if dept_col in high_risk_df.columns:
+        risk_col = 'RiskLevel' if 'RiskLevel' in high_risk_df.columns else 'risk_category'
+        dept_risk = high_risk_df.groupby([dept_col, risk_col]).size().unstack(fill_value=0)
         dept_risk.plot(kind='bar', stacked=True, ax=ax[1], color=colors, edgecolor='black')
         ax[1].set_title('Risk Distribution by Department', fontsize=14, fontweight='bold')
         ax[1].set_xlabel('Department')
@@ -204,9 +337,14 @@ def main():
         df = load_data()
         if df is not None:
             st.metric("Total Employees", f"{len(df):,}")
-            attrition_rate = (df['Attrition'] == 'Yes').sum() / len(df) * 100
+            attrition_col = 'Attrition' if 'Attrition' in df.columns else 'attrition'
+            if df[attrition_col].dtype == 'object':
+                attrition_count = (df[attrition_col].str.lower() == 'yes').sum()
+            else:
+                attrition_count = (df[attrition_col] == 1).sum()
+            attrition_rate = attrition_count / len(df) * 100
             st.metric("Attrition Rate", f"{attrition_rate:.1f}%")
-            st.metric("Model Accuracy", "96.4%")
+            st.metric("Model Accuracy", "93.0%")
     
     # Load data
     df = load_data()
@@ -245,7 +383,12 @@ def show_dashboard(df, high_risk_df, predictions_df):
         st.metric("👥 Total Employees", f"{total_employees:,}")
     
     with col2:
-        attrition_count = (df['Attrition'] == 'Yes').sum()
+        attrition_col = 'Attrition' if 'Attrition' in df.columns else 'attrition'
+        # Handle both 'Yes'/1 and 1/0 format
+        if df[attrition_col].dtype == 'object':
+            attrition_count = (df[attrition_col].str.lower() == 'yes').sum()
+        else:
+            attrition_count = (df[attrition_col] == 1).sum()
         attrition_rate = attrition_count / total_employees * 100
         st.metric("📉 Attrition Rate", f"{attrition_rate:.1f}%", 
                  delta=f"-{attrition_count} employees", delta_color="inverse")
@@ -284,14 +427,22 @@ def show_dashboard(df, high_risk_df, predictions_df):
     
     # Department Analysis
     st.subheader("🏢 Department-wise Analysis")
-    if 'Department' in df.columns:
-        dept_attrition = df.groupby('Department')['Attrition'].apply(
-            lambda x: (x == 'Yes').sum() / len(x) * 100
-        ).sort_values(ascending=False)
+    dept_col = 'Department' if 'Department' in df.columns else 'department'
+    if dept_col in df.columns:
+        attrition_col = 'Attrition' if 'Attrition' in df.columns else 'attrition'
+        if df[attrition_col].dtype == 'object':
+            dept_attrition = df.groupby(dept_col)[attrition_col].apply(
+                lambda x: (x.str.lower() == 'yes').sum() / len(x) * 100
+            ).sort_values(ascending=False)
+        else:
+            dept_attrition = df.groupby(dept_col)[attrition_col].apply(
+                lambda x: (x == 1).sum() / len(x) * 100
+            ).sort_values(ascending=False)
         
-        fig, ax = plt.subplots(figsize=(12, 5))
-        colors = plt.cm.RdYlGn_r(np.linspace(0.2, 0.8, len(dept_attrition)))
-        bars = ax.barh(dept_attrition.index, dept_attrition.values, color=colors, edgecolor='black')
+        fig, ax = plt.subplots(figsize=(12, 5), facecolor='white')
+        # Professional gradient: shades of blue and gray
+        colors = ['#2C3E50', '#34495E', '#5D6D7E', '#7F8C8D', '#95A5A6'][:len(dept_attrition)]
+        bars = ax.barh(dept_attrition.index, dept_attrition.values, color=colors, edgecolor='#2C3E50', linewidth=1.5)
         ax.set_xlabel('Attrition Rate (%)', fontsize=12, fontweight='bold')
         ax.set_title('Attrition Rate by Department', fontsize=14, fontweight='bold')
         ax.grid(axis='x', alpha=0.3)
@@ -425,22 +576,26 @@ def show_batch_analysis(df, predictions_df):
         # Filter options
         col1, col2 = st.columns(2)
         with col1:
-            if 'RiskLevel' in predictions_df.columns:
+            risk_col = 'RiskLevel' if 'RiskLevel' in predictions_df.columns else 'risk_category'
+            if risk_col in predictions_df.columns:
                 risk_filter = st.multiselect("Filter by Risk Level", 
-                                            options=predictions_df['RiskLevel'].unique(),
-                                            default=predictions_df['RiskLevel'].unique())
+                                            options=predictions_df[risk_col].unique(),
+                                            default=predictions_df[risk_col].unique())
         with col2:
-            if 'Department' in predictions_df.columns:
+            dept_col = 'Department' if 'Department' in predictions_df.columns else 'department'
+            if dept_col in predictions_df.columns:
                 dept_filter = st.multiselect("Filter by Department",
-                                            options=predictions_df['Department'].unique(),
-                                            default=predictions_df['Department'].unique())
+                                            options=predictions_df[dept_col].unique(),
+                                            default=predictions_df[dept_col].unique())
         
         # Apply filters
         filtered_df = predictions_df.copy()
-        if 'RiskLevel' in predictions_df.columns and risk_filter:
-            filtered_df = filtered_df[filtered_df['RiskLevel'].isin(risk_filter)]
-        if 'Department' in predictions_df.columns and dept_filter:
-            filtered_df = filtered_df[filtered_df['Department'].isin(dept_filter)]
+        risk_col = 'RiskLevel' if 'RiskLevel' in predictions_df.columns else 'risk_category'
+        if risk_col in predictions_df.columns and 'risk_filter' in locals() and risk_filter:
+            filtered_df = filtered_df[filtered_df[risk_col].isin(risk_filter)]
+        dept_col = 'Department' if 'Department' in predictions_df.columns else 'department'
+        if dept_col in predictions_df.columns and 'dept_filter' in locals() and dept_filter:
+            filtered_df = filtered_df[filtered_df[dept_col].isin(dept_filter)]
         
         # Display data
         st.dataframe(filtered_df, use_container_width=True, height=400)
@@ -474,7 +629,8 @@ def show_high_risk_employees(high_risk_df):
         
         # Risk level distribution
         col1, col2, col3 = st.columns(3)
-        risk_counts = high_risk_df['RiskLevel'].value_counts()
+        risk_col = 'RiskLevel' if 'RiskLevel' in high_risk_df.columns else 'risk_category'
+        risk_counts = high_risk_df[risk_col].value_counts()
         
         with col1:
             high = risk_counts.get('High', 0)
@@ -494,28 +650,34 @@ def show_high_risk_employees(high_risk_df):
         col1, col2, col3 = st.columns(3)
         
         with col1:
+            risk_col = 'RiskLevel' if 'RiskLevel' in high_risk_df.columns else 'risk_category'
             risk_filter = st.multiselect("Risk Level", 
-                                        options=high_risk_df['RiskLevel'].unique(),
-                                        default=['High'])
+                                        options=high_risk_df[risk_col].unique(),
+                                        default=high_risk_df[risk_col].unique()[:1])
         
         with col2:
-            if 'Department' in high_risk_df.columns:
+            dept_col = 'Department' if 'Department' in high_risk_df.columns else 'department'
+            if dept_col in high_risk_df.columns:
                 dept_filter = st.multiselect("Department",
-                                            options=high_risk_df['Department'].unique(),
-                                            default=high_risk_df['Department'].unique())
+                                            options=high_risk_df[dept_col].unique(),
+                                            default=high_risk_df[dept_col].unique())
         
         with col3:
-            if 'Attrition_Probability' in high_risk_df.columns:
+            prob_col = 'Attrition_Probability' if 'Attrition_Probability' in high_risk_df.columns else 'attrition_risk_score'
+            if prob_col in high_risk_df.columns:
                 min_prob = st.slider("Min Probability", 0.0, 1.0, 0.7)
         
         # Apply filters
         filtered_df = high_risk_df.copy()
+        risk_col = 'RiskLevel' if 'RiskLevel' in high_risk_df.columns else 'risk_category'
         if risk_filter:
-            filtered_df = filtered_df[filtered_df['RiskLevel'].isin(risk_filter)]
-        if 'Department' in high_risk_df.columns and dept_filter:
-            filtered_df = filtered_df[filtered_df['Department'].isin(dept_filter)]
-        if 'Attrition_Probability' in high_risk_df.columns:
-            filtered_df = filtered_df[filtered_df['Attrition_Probability'] >= min_prob]
+            filtered_df = filtered_df[filtered_df[risk_col].isin(risk_filter)]
+        dept_col = 'Department' if 'Department' in high_risk_df.columns else 'department'
+        if dept_col in high_risk_df.columns and 'dept_filter' in locals() and dept_filter:
+            filtered_df = filtered_df[filtered_df[dept_col].isin(dept_filter)]
+        prob_col = 'Attrition_Probability' if 'Attrition_Probability' in high_risk_df.columns else 'attrition_risk_score'
+        if prob_col in high_risk_df.columns and 'min_prob' in locals():
+            filtered_df = filtered_df[filtered_df[prob_col] >= min_prob]
         
         st.dataframe(filtered_df, use_container_width=True, height=400)
         
@@ -576,7 +738,7 @@ def show_roi_calculator():
         
         st.markdown("---")
         
-        model_accuracy = st.slider("Model Accuracy (%)", 80.0, 99.0, 96.4, 0.1)
+        model_accuracy = st.slider("Model Accuracy (%)", 80.0, 99.0, 93.0, 0.1)
         retention_success_rate = st.slider("Intervention Success Rate (%)", 10.0, 80.0, 35.0, 1.0)
         implementation_cost = st.number_input("Implementation Cost ($)", 0, 500000, 150000, 10000)
         annual_maintenance = st.number_input("Annual Maintenance ($)", 0, 200000, 50000, 5000)
@@ -646,10 +808,11 @@ def show_roi_calculator():
     st.subheader("📊 5-Year Cash Flow Projection")
     
     years = np.arange(1, 6)
-    cashflows = [year1_net] + [annual_net] * 4
+    # Year 1 has implementation cost, Years 2-5 only have maintenance
+    cashflows = [year1_net, annual_net, annual_net, annual_net, annual_net]
     cumulative = np.cumsum(cashflows)
     
-    fig, ax = plt.subplots(figsize=(12, 6))
+    fig, ax = plt.subplots(figsize=(12, 6), facecolor='white')
     
     ax.bar(years, cashflows, color='#2ecc71', alpha=0.7, label='Annual Net Benefit', edgecolor='black')
     ax.plot(years, cumulative, color='#3498db', marker='o', linewidth=3, markersize=10, label='Cumulative Benefit')
@@ -672,14 +835,19 @@ def show_data_explorer(df):
     # Dataset overview
     col1, col2, col3, col4 = st.columns(4)
     
+    # Count actual features (exclude ID and target columns)
+    feature_cols = [col for col in df.columns if col not in ['employee_id', 'attrition', 'Attrition', 'attrition_risk_score', 'prediction_date']]
+    
     with col1:
         st.metric("Total Records", f"{len(df):,}")
     with col2:
-        st.metric("Features", len(df.columns))
+        st.metric("Features", len(feature_cols))
     with col3:
-        st.metric("Numeric Features", len(df.select_dtypes(include=[np.number]).columns))
+        numeric_features = [col for col in feature_cols if df[col].dtype in ['int64', 'float64']]
+        st.metric("Numeric Features", len(numeric_features))
     with col4:
-        st.metric("Categorical Features", len(df.select_dtypes(include=['object']).columns))
+        categorical_features = [col for col in feature_cols if df[col].dtype == 'object']
+        st.metric("Categorical Features", len(categorical_features))
     
     st.markdown("---")
     
@@ -694,12 +862,20 @@ def show_data_explorer(df):
         with col1:
             rows_to_show = st.slider("Rows to display", 5, 100, 10)
         with col2:
-            if 'Department' in df.columns:
+            dept_col = 'Department' if 'Department' in df.columns else 'department'
+            if dept_col in df.columns:
                 dept_filter = st.multiselect("Filter by Department", 
-                                            options=['All'] + list(df['Department'].unique()),
+                                            options=['All'] + list(df[dept_col].unique()),
                                             default=['All'])
+            else:
+                dept_filter = ['All']
         
-        display_df = df.head(rows_to_show) if 'All' in dept_filter or not dept_filter else df[df['Department'].isin(dept_filter)].head(rows_to_show)
+        if 'All' in dept_filter or not dept_filter:
+            display_df = df.head(rows_to_show)
+        else:
+            dept_col = 'Department' if 'Department' in df.columns else 'department'
+            display_df = df[df[dept_col].isin(dept_filter)].head(rows_to_show)
+        
         st.dataframe(display_df, use_container_width=True)
         
         # Download
@@ -797,7 +973,7 @@ def show_about():
         
         ### Overview
         This is a production-ready machine learning application designed to predict employee attrition 
-        with **96.4% accuracy**. The system helps organizations proactively identify at-risk employees 
+        with **93% accuracy** (97.16% ROC-AUC). The system helps organizations proactively identify at-risk employees 
         and take preventive actions.
         
         ### Key Features
@@ -808,17 +984,18 @@ def show_about():
         - **Interactive Dashboard**: Visualize key metrics and trends
         - **Data Explorer**: Explore and analyze your workforce data
         
-        ### Model Performance
-        - **Accuracy**: 96.4%
-        - **Precision**: High precision in identifying at-risk employees
-        - **Recall**: Excellent recall for catching potential attrition cases
-        - **ROC-AUC**: 96.4%
+        ### Model Performance (Best Model: Gradient Boosting)
+        - **Accuracy**: 93.00%
+        - **Precision**: 86.36%
+        - **F1-Score**: 73.08%
+        - **ROC-AUC**: 97.16%
         
         ### Business Impact
-        - **$6.2M** in projected annual savings
-        - **12.1x** return on investment over 5 years
-        - **30-40%** reduction in attrition rate
-        - **Payback period**: Less than 1 year
+        - **$18.4M** in projected annual savings (30% attrition reduction)
+        - **92x** return on investment over 5 years
+        - **750** employees currently at risk (15% attrition rate)
+        - **225** employees can be saved annually with intervention
+        - **Payback period**: Less than 2 months
         
         ### Technology Stack
         - **Frontend**: Streamlit
@@ -845,10 +1022,10 @@ def show_about():
         
         ### 📊 Project Stats
         """)
-        st.metric("Lines of Code", "2,000+")
-        st.metric("Models Trained", "3")
-        st.metric("Features Engineered", "15+")
-        st.metric("Visualizations", "20+")
+        st.metric("Lines of Code", "2,500+")
+        st.metric("Models Trained", "4 (LR, RF, GB, XGB)")
+        st.metric("Features Used", "22")
+        st.metric("Visualizations", "13")
         
         st.markdown("""
         ### 🔄 Version History

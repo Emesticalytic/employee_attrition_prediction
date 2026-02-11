@@ -66,7 +66,7 @@ st.markdown("""
         text-align: center;
         padding: 1.5rem 0;
         margin-bottom: 1rem;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -175,6 +175,39 @@ st.markdown("""
     [data-testid="stSidebar"] .stRadio > label {
         color: white;
         font-weight: 600;
+        font-size: 1.1rem;
+    }
+    
+    /* Fix Navigation Radio Buttons */
+    [data-testid="stSidebar"] .stRadio > div {
+        padding: 0.5rem 0;
+    }
+    
+    [data-testid="stSidebar"] .stRadio label {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        margin: 0.25rem 0;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+    
+    [data-testid="stSidebar"] .stRadio label:hover {
+        background-color: rgba(255, 255, 255, 0.15);
+        transform: translateX(5px);
+    }
+    
+    [data-testid="stSidebar"] .stRadio input[type="radio"]:checked + label {
+        background-color: #3498DB;
+        font-weight: 700;
+    }
+    
+    [data-testid="stSidebar"] h3, 
+    [data-testid="stSidebar"] h1,
+    [data-testid="stSidebar"] p {
+        color: white !important;
     }
     
     /* Professional Chart Colors */
@@ -224,6 +257,24 @@ def load_predictions():
     try:
         high_risk = pd.read_csv('high_risk.csv')
         predictions = pd.read_csv('attritionprediction.csv')
+        
+        # Merge predictions with employee data to get department info
+        employee_df = pd.read_csv('employee.csv')
+        if 'employee_id' in predictions.columns and 'employee_id' in employee_df.columns:
+            # Select only the columns we need from employee data
+            merge_cols = ['employee_id']
+            if 'department' in employee_df.columns:
+                merge_cols.append('department')
+            if 'Department' in employee_df.columns:
+                merge_cols.append('Department')
+            if 'job_role' in employee_df.columns:
+                merge_cols.append('job_role')
+                
+            predictions = predictions.merge(
+                employee_df[merge_cols],
+                on='employee_id',
+                how='left'
+            )
         
         # Standardize column names
         if 'risk_category' in high_risk.columns:
@@ -275,39 +326,64 @@ def plot_attrition_distribution(df):
     plt.tight_layout()
     return fig
 
-def plot_risk_distribution(high_risk_df):
+def plot_risk_distribution(predictions_df):
     """Plot risk level distribution"""
-    if high_risk_df is None or high_risk_df.empty:
+    if predictions_df is None or predictions_df.empty:
         return None
     
     fig, ax = plt.subplots(1, 2, figsize=(14, 5))
     
     # Risk level distribution
-    risk_col = 'RiskLevel' if 'RiskLevel' in high_risk_df.columns else 'risk_category'
-    risk_counts = high_risk_df[risk_col].value_counts()
-    colors = ['#34495E', '#5D6D7E', '#95A5A6']  # Professional dark to light gray
+    risk_col = 'RiskLevel' if 'RiskLevel' in predictions_df.columns else 'risk_category'
+    risk_counts = predictions_df[risk_col].value_counts()
     
-    ax[0].bar(risk_counts.index, risk_counts.values, color=colors, edgecolor='black', linewidth=1.5)
+    # Define risk order and colors - Vibrant, high-contrast colors
+    risk_order = ['High', 'Medium', 'Low']
+    color_map = {'High': '#D32F2F', 'Medium': '#FFA000', 'Low': '#00BCD4'}  # Bright Red, Bright Amber, Bright Cyan
+    
+    # Reindex to ensure proper order
+    risk_counts = risk_counts.reindex(risk_order, fill_value=0)
+    bar_colors = [color_map.get(risk, '#95A5A6') for risk in risk_counts.index]
+    
+    ax[0].bar(risk_counts.index, risk_counts.values, color=bar_colors, edgecolor='black', linewidth=1.5)
     ax[0].set_title('Risk Level Distribution', fontsize=14, fontweight='bold')
     ax[0].set_xlabel('Risk Level')
     ax[0].set_ylabel('Number of Employees')
     ax[0].grid(axis='y', alpha=0.3)
     
     for i, v in enumerate(risk_counts.values):
-        ax[0].text(i, v + 2, str(v), ha='center', fontweight='bold')
+        if v > 0:  # Only show label if there are employees
+            ax[0].text(i, v + 2, str(v), ha='center', fontweight='bold')
     
     # Department-wise risk
-    dept_col = 'Department' if 'Department' in high_risk_df.columns else 'department'
-    if dept_col in high_risk_df.columns:
-        risk_col = 'RiskLevel' if 'RiskLevel' in high_risk_df.columns else 'risk_category'
-        dept_risk = high_risk_df.groupby([dept_col, risk_col]).size().unstack(fill_value=0)
-        dept_risk.plot(kind='bar', stacked=True, ax=ax[1], color=colors, edgecolor='black')
-        ax[1].set_title('Risk Distribution by Department', fontsize=14, fontweight='bold')
+    dept_col = 'Department' if 'Department' in predictions_df.columns else 'department'
+    if dept_col in predictions_df.columns:
+        risk_col = 'RiskLevel' if 'RiskLevel' in predictions_df.columns else 'risk_category'
+        dept_risk = predictions_df.groupby([dept_col, risk_col]).size().unstack(fill_value=0)
+        
+        # Ensure columns are in High, Medium, Low order
+        risk_order = ['High', 'Medium', 'Low']
+        dept_risk = dept_risk.reindex(columns=risk_order, fill_value=0)
+        
+        # Sort by total risk (sum of all risk levels) - highest to lowest
+        dept_risk['_total'] = dept_risk.sum(axis=1)
+        dept_risk = dept_risk.sort_values('_total', ascending=False).drop('_total', axis=1)
+        
+        # Vibrant, eye-catching colors for risk levels (High, Medium, Low)
+        sharp_colors = ['#D32F2F', '#FFA000', '#00BCD4']  # Bright Red, Bright Amber, Bright Cyan
+        
+        dept_risk.plot(kind='bar', stacked=True, ax=ax[1], color=sharp_colors, edgecolor='black', linewidth=1.2)
+        ax[1].set_title('Risk Distribution by Department (High to Low)', fontsize=14, fontweight='bold')
         ax[1].set_xlabel('Department')
         ax[1].set_ylabel('Number of Employees')
         ax[1].legend(title='Risk Level')
         ax[1].tick_params(axis='x', rotation=45)
         ax[1].grid(axis='y', alpha=0.3)
+    else:
+        # If no department data, show message
+        ax[1].text(0.5, 0.5, 'Department data not available\nRefresh page to reload data', 
+                   ha='center', va='center', transform=ax[1].transAxes, fontsize=12)
+        ax[1].set_title('Risk Distribution by Department', fontsize=14, fontweight='bold')
     
     plt.tight_layout()
     return fig
@@ -320,7 +396,9 @@ def main():
     
     # Sidebar
     with st.sidebar:
-        st.image("https://img.icons8.com/color/96/000000/employee.png", width=100)
+        st.markdown("# 🎯 Employee Attrition")
+        st.markdown("### Prediction System")
+        st.markdown("---")
         st.title("Navigation")
         page = st.radio("Go to:", [
             "📊 Dashboard",
@@ -363,7 +441,7 @@ def main():
     elif page == "📈 Batch Analysis":
         show_batch_analysis(df, predictions_df)
     elif page == "🎯 High-Risk Employees":
-        show_high_risk_employees(high_risk_df)
+        show_high_risk_employees(predictions_df)
     elif page == "💰 ROI Calculator":
         show_roi_calculator()
     elif page == "📋 Data Explorer":
@@ -416,8 +494,8 @@ def show_dashboard(df, high_risk_df, predictions_df):
     
     with col2:
         st.subheader("🎯 Risk Analysis")
-        if high_risk_df is not None and not high_risk_df.empty:
-            fig = plot_risk_distribution(high_risk_df)
+        if predictions_df is not None and not predictions_df.empty:
+            fig = plot_risk_distribution(predictions_df)
             if fig:
                 st.pyplot(fig)
         else:
@@ -440,8 +518,14 @@ def show_dashboard(df, high_risk_df, predictions_df):
             ).sort_values(ascending=False)
         
         fig, ax = plt.subplots(figsize=(12, 5), facecolor='white')
-        # Professional gradient: shades of blue and gray
-        colors = ['#2C3E50', '#34495E', '#5D6D7E', '#7F8C8D', '#95A5A6'][:len(dept_attrition)]
+        # Vibrant gradient: red to cyan based on attrition rate (high to low)
+        import matplotlib.cm as cm
+        import matplotlib.colors as mcolors
+        
+        # Create a colormap from bright red (high attrition) to bright cyan (low attrition)
+        cmap = mcolors.LinearSegmentedColormap.from_list("attrition", ["#D32F2F", "#FFA000", "#00BCD4"])
+        colors = [cmap(i / len(dept_attrition)) for i in range(len(dept_attrition))]
+        
         bars = ax.barh(dept_attrition.index, dept_attrition.values, color=colors, edgecolor='#2C3E50', linewidth=1.5)
         ax.set_xlabel('Attrition Rate (%)', fontsize=12, fontweight='bold')
         ax.set_title('Attrition Rate by Department', fontsize=14, fontweight='bold')
@@ -482,8 +566,16 @@ def show_single_prediction(df, model, scaler):
         environment_satisfaction = st.selectbox("Environment Satisfaction", [1, 2, 3, 4], format_func=lambda x: f"Level {x}")
         
     with col3:
-        department = st.selectbox("Department", df['Department'].unique() if 'Department' in df.columns else ['Sales', 'HR', 'R&D'])
-        job_role = st.selectbox("Job Role", df['JobRole'].unique() if 'JobRole' in df.columns else ['Manager', 'Executive', 'Analyst'])
+        # Get department column (handle both cases)
+        dept_col = 'Department' if 'Department' in df.columns else 'department'
+        departments = sorted(df[dept_col].unique()) if dept_col in df.columns else ['Engineering', 'Finance', 'HR', 'Marketing', 'Operations', 'Sales']
+        department = st.selectbox("Department", departments)
+        
+        # Get job role column
+        role_col = 'JobRole' if 'JobRole' in df.columns else 'job_role'
+        job_roles = sorted(df[role_col].unique()) if role_col in df.columns else ['Manager', 'Executive', 'Analyst', 'Engineer', 'Director']
+        job_role = st.selectbox("Job Role", job_roles)
+        
         overtime = st.selectbox("Overtime", ['Yes', 'No'])
     
     if st.button("🎯 Predict Attrition Risk", type="primary", use_container_width=True):
@@ -620,17 +712,20 @@ def show_batch_analysis(df, predictions_df):
         4. Refresh this page
         """)
 
-def show_high_risk_employees(high_risk_df):
+def show_high_risk_employees(predictions_df):
     """Display high-risk employees"""
     st.header("🎯 High-Risk Employees")
     
-    if high_risk_df is not None and not high_risk_df.empty:
-        st.warning(f"⚠️ {len(high_risk_df)} employees identified as high risk")
+    if predictions_df is not None and not predictions_df.empty:
+        # Count high risk employees
+        risk_col = 'RiskLevel' if 'RiskLevel' in predictions_df.columns else 'risk_category'
+        high_risk_count = len(predictions_df[predictions_df[risk_col] == 'High'])
+        st.warning(f"⚠️ {high_risk_count} employees identified as high risk out of {len(predictions_df)} total")
         
         # Risk level distribution
         col1, col2, col3 = st.columns(3)
-        risk_col = 'RiskLevel' if 'RiskLevel' in high_risk_df.columns else 'risk_category'
-        risk_counts = high_risk_df[risk_col].value_counts()
+        risk_col = 'RiskLevel' if 'RiskLevel' in predictions_df.columns else 'risk_category'
+        risk_counts = predictions_df[risk_col].value_counts()
         
         with col1:
             high = risk_counts.get('High', 0)
@@ -650,33 +745,35 @@ def show_high_risk_employees(high_risk_df):
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            risk_col = 'RiskLevel' if 'RiskLevel' in high_risk_df.columns else 'risk_category'
+            risk_col = 'RiskLevel' if 'RiskLevel' in predictions_df.columns else 'risk_category'
+            all_risks = ['High', 'Medium', 'Low']
+            available_risks = [r for r in all_risks if r in predictions_df[risk_col].values]
             risk_filter = st.multiselect("Risk Level", 
-                                        options=high_risk_df[risk_col].unique(),
-                                        default=high_risk_df[risk_col].unique()[:1])
+                                        options=available_risks,
+                                        default=['High'])
         
         with col2:
-            dept_col = 'Department' if 'Department' in high_risk_df.columns else 'department'
-            if dept_col in high_risk_df.columns:
+            dept_col = 'Department' if 'Department' in predictions_df.columns else 'department'
+            if dept_col in predictions_df.columns:
                 dept_filter = st.multiselect("Department",
-                                            options=high_risk_df[dept_col].unique(),
-                                            default=high_risk_df[dept_col].unique())
+                                            options=sorted(predictions_df[dept_col].unique()),
+                                            default=sorted(predictions_df[dept_col].unique()))
         
         with col3:
-            prob_col = 'Attrition_Probability' if 'Attrition_Probability' in high_risk_df.columns else 'attrition_risk_score'
-            if prob_col in high_risk_df.columns:
-                min_prob = st.slider("Min Probability", 0.0, 1.0, 0.7)
+            prob_col = 'Attrition_Probability' if 'Attrition_Probability' in predictions_df.columns else 'attrition_risk_score'
+            if prob_col in predictions_df.columns:
+                min_prob = st.slider("Min Risk Score", 0.0, 1.0, 0.5)
         
         # Apply filters
-        filtered_df = high_risk_df.copy()
-        risk_col = 'RiskLevel' if 'RiskLevel' in high_risk_df.columns else 'risk_category'
+        filtered_df = predictions_df.copy()
+        risk_col = 'RiskLevel' if 'RiskLevel' in predictions_df.columns else 'risk_category'
         if risk_filter:
             filtered_df = filtered_df[filtered_df[risk_col].isin(risk_filter)]
-        dept_col = 'Department' if 'Department' in high_risk_df.columns else 'department'
-        if dept_col in high_risk_df.columns and 'dept_filter' in locals() and dept_filter:
+        dept_col = 'Department' if 'Department' in predictions_df.columns else 'department'
+        if dept_col in predictions_df.columns and 'dept_filter' in locals() and dept_filter:
             filtered_df = filtered_df[filtered_df[dept_col].isin(dept_filter)]
-        prob_col = 'Attrition_Probability' if 'Attrition_Probability' in high_risk_df.columns else 'attrition_risk_score'
-        if prob_col in high_risk_df.columns and 'min_prob' in locals():
+        prob_col = 'Attrition_Probability' if 'Attrition_Probability' in predictions_df.columns else 'attrition_risk_score'
+        if prob_col in predictions_df.columns and 'min_prob' in locals():
             filtered_df = filtered_df[filtered_df[prob_col] >= min_prob]
         
         st.dataframe(filtered_df, use_container_width=True, height=400)
